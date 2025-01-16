@@ -167,20 +167,26 @@ class ExcelMergerApp:
         # 创建各个标签页
         file_page = tabview.add("文件选择")
         merge_page = tabview.add("合并设置")
-        style_page = tabview.add("样式设置")
+        excel_style_page = tabview.add("Excel样式")
+        ui_settings_page = tabview.add("界面设置")
         schedule_page = tabview.add("定时任务")
         
         # ===== 文件选择页面 =====
-        # 文件和Sheet选择区域
         file_frame = ctk.CTkFrame(file_page)
         file_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
-        file_label = ctk.CTkLabel(file_frame, text="文件和Sheet选择", **self.label_style)
-        file_label.pack(pady=10)
+        # 添加标题
+        file_title = ctk.CTkLabel(file_frame, text="文件选择与输出设置", font=("Microsoft YaHei UI", 16, "bold"))
+        file_title.pack(pady=10)
+        
+        # 文件和Sheet选择区域
+        file_section_frame = ctk.CTkFrame(file_frame)
+        file_section_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
         
         # 创建表格来显示文件和对应的sheet选择
         # 创建带滚动条的框架
-        tree_frame = ctk.CTkFrame(file_frame)
+        tree_frame = ctk.CTkFrame(file_section_frame)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # 由于CustomTkinter没有提供Treeview，我们继续使用tkinter的Treeview
@@ -205,7 +211,7 @@ class ExcelMergerApp:
             self.file_tree.column(col, width=150)  # 设置更合适的列宽
         
         # 添加和清除按钮
-        btn_frame = ctk.CTkFrame(file_frame)
+        btn_frame = ctk.CTkFrame(file_section_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ctk.CTkButton(btn_frame, text="添加文件", command=self.add_files, 
@@ -218,7 +224,7 @@ class ExcelMergerApp:
                      **self.button_style).pack(side=tk.LEFT, padx=5)
         
         # 输出路径选择
-        output_frame = ctk.CTkFrame(file_page)
+        output_frame = ctk.CTkFrame(file_frame)
         output_frame.pack(fill=tk.X, padx=10, pady=5)
         
         output_label = ctk.CTkLabel(output_frame, text="输出设置", **self.label_style)
@@ -265,8 +271,15 @@ class ExcelMergerApp:
                     **self.label_style).pack(side=tk.LEFT)
         
         # ===== 合并设置页面 =====
+        merge_frame = ctk.CTkFrame(merge_page)
+        merge_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 添加标题
+        merge_title = ctk.CTkLabel(merge_frame, text="合并方式设置", font=("Microsoft YaHei UI", 16, "bold"))
+        merge_title.pack(pady=10)
+        
         # 合并方式设置
-        merge_settings_frame = ctk.CTkFrame(merge_page)
+        merge_settings_frame = ctk.CTkFrame(merge_frame)
         merge_settings_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 合并方式选择
@@ -298,7 +311,7 @@ class ExcelMergerApp:
         self.on_merge_mode_change()
 
         # 数据区间选择
-        range_frame = ctk.CTkFrame(merge_page)
+        range_frame = ctk.CTkFrame(merge_frame)
         range_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 行设置
@@ -324,7 +337,7 @@ class ExcelMergerApp:
         ctk.CTkLabel(range_frame, text="注：列请使用Excel列标（如：A、B、C...）", **self.label_style).pack(padx=5, pady=5)
         
         # 表头设置
-        header_frame = ctk.CTkFrame(merge_page)
+        header_frame = ctk.CTkFrame(merge_frame)
         header_frame.pack(fill=tk.X, padx=10, pady=5)
         
         header_settings = ctk.CTkFrame(header_frame)
@@ -335,12 +348,32 @@ class ExcelMergerApp:
         ctk.CTkLabel(header_settings, text="（第几行是表头，从1开始）", **self.label_style).pack(side=tk.LEFT, padx=5)
         ctk.CTkCheckBox(header_settings, text="保留表头", variable=self.keep_header, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
         
-        # ===== 样式设置页面 =====
-        style_options_frame = ctk.CTkFrame(style_page)
-        style_options_frame.pack(fill=tk.X, padx=10, pady=5)
+        # ===== Excel样式设置页面 =====
+        excel_style_frame = ctk.CTkFrame(excel_style_page)
+        excel_style_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 添加标题
+        excel_style_title = ctk.CTkLabel(excel_style_frame, text="Excel文件样式设置", font=("Microsoft YaHei UI", 16, "bold"))
+        excel_style_title.pack(pady=10)
+        
+        # Excel样式选项
+        style_frame = ctk.CTkFrame(excel_style_frame)
+        style_frame.pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkCheckBox(style_frame, text="保留Excel原有样式", variable=self.keep_styles, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留列宽", variable=self.keep_column_width, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留单元格格式", variable=self.keep_cell_format, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留颜色", variable=self.keep_colors, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+
+        # ===== 界面设置页面 =====
+        ui_settings_frame = ctk.CTkFrame(ui_settings_page)
+        ui_settings_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 添加标题
+        ui_settings_title = ctk.CTkLabel(ui_settings_frame, text="软件界面设置", font=("Microsoft YaHei UI", 16, "bold"))
+        ui_settings_title.pack(pady=10)
         
         # 添加外观模式选择
-        theme_frame = ctk.CTkFrame(style_options_frame)
+        theme_frame = ctk.CTkFrame(ui_settings_frame)
         theme_frame.pack(fill=tk.X, padx=5, pady=5)
         ctk.CTkLabel(theme_frame, text="外观模式：", **self.label_style).pack(side=tk.LEFT, padx=5)
         
@@ -358,7 +391,7 @@ class ExcelMergerApp:
         self.appearance_mode_menu.pack(side=tk.LEFT, padx=5)
         
         # 添加颜色主题选择
-        color_theme_frame = ctk.CTkFrame(style_options_frame)
+        color_theme_frame = ctk.CTkFrame(ui_settings_frame)
         color_theme_frame.pack(fill=tk.X, padx=5, pady=5)
         ctk.CTkLabel(color_theme_frame, text="颜色主题：", **self.label_style).pack(side=tk.LEFT, padx=5)
         
@@ -375,16 +408,15 @@ class ExcelMergerApp:
         )
         self.color_theme_menu.pack(side=tk.LEFT, padx=5)
         
-        # 样式选项
-        style_frame = ctk.CTkFrame(style_options_frame)
-        style_frame.pack(fill=tk.X, padx=5, pady=5)
-        ctk.CTkCheckBox(style_frame, text="保留样式", variable=self.keep_styles, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
-        ctk.CTkCheckBox(style_frame, text="保留列宽", variable=self.keep_column_width, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
-        ctk.CTkCheckBox(style_frame, text="保留单元格格式", variable=self.keep_cell_format, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
-        ctk.CTkCheckBox(style_frame, text="保留颜色", variable=self.keep_colors, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
-        
         # ===== 定时任务页面 =====
-        schedule_settings_frame = ctk.CTkFrame(schedule_page)
+        schedule_frame = ctk.CTkFrame(schedule_page)
+        schedule_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 添加标题
+        schedule_title = ctk.CTkLabel(schedule_frame, text="定时任务设置", font=("Microsoft YaHei UI", 16, "bold"))
+        schedule_title.pack(pady=10)
+        
+        schedule_settings_frame = ctk.CTkFrame(schedule_frame)
         schedule_settings_frame.pack(fill=tk.X, padx=10, pady=5)
         
         schedule_time_frame = ctk.CTkFrame(schedule_settings_frame)
@@ -732,7 +764,7 @@ class ExcelMergerApp:
         if inconsistent_files:
             return False, "\n".join(inconsistent_files)
         return True, "所有文件的表头一致"
-
+        return True, "所有文件的表头一致"
     def merge_files(self):
         if not self.input_files:
             messagebox.showerror("错误", "请先选择要合并的Excel文件！")
@@ -1493,7 +1525,7 @@ class ExcelMergerApp:
             new_name = f"{base_name}_{counter}"
             counter += 1
         return new_name
-
+        return new_name
     def resolve_sheet_name_conflicts(self):
         """解决sheet名称冲突"""
         conflicts = self.check_sheet_name_conflicts()
@@ -1507,10 +1539,6 @@ class ExcelMergerApp:
         
         # 说明文本
         ctk.CTkLabel(dialog, text="检测到以下Sheet名称冲突，请选择处理方式：").pack(padx=10, pady=5)
-        
-        # 创建滚动框架
-        frame = ctk.CTkFrame(dialog)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         # 创建滚动框架
         frame = ctk.CTkFrame(dialog)
@@ -1625,4 +1653,5 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
+    main() 
     main() 
