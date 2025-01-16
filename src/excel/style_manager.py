@@ -1,176 +1,135 @@
 """
 Excel样式管理模块
-处理Excel文件的样式复制和应用
+处理Excel文件样式的保存和应用
 """
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 from openpyxl.utils import get_column_letter
+from copy import copy
 
 class ExcelStyleManager:
-    def __init__(self, keep_styles=True, keep_colors=True, keep_cell_format=True):
-        """初始化Excel样式管理器"""
-        self.keep_styles = keep_styles
-        self.keep_colors = keep_colors
-        self.keep_cell_format = keep_cell_format
-
+    def __init__(self):
+        """初始化样式管理器"""
+        pass
+        
     def get_column_styles(self, workbook, sheet_name, header_row):
-        """获取列样式模板"""
-        sheet = workbook[sheet_name]
+        """
+        获取指定sheet的列样式
         
-        # 获取表头行的样式
-        header_styles = {}
-        for cell in sheet[header_row]:
-            if not isinstance(cell, type(None)):
-                try:
-                    col_letter = get_column_letter(cell.column)
-                    if hasattr(cell, 'font'):
-                        # 创建新的样式对象而不是直接引用
-                        header_styles[col_letter] = {
-                            'font': Font(
-                                name=cell.font.name,
-                                size=cell.font.size,
-                                bold=cell.font.bold,
-                                italic=cell.font.italic,
-                                vertAlign=cell.font.vertAlign,
-                                underline=cell.font.underline,
-                                strike=cell.font.strike,
-                                color=cell.font.color
-                            ),
-                            'fill': PatternFill(
-                                fill_type=cell.fill.fill_type,
-                                start_color=cell.fill.start_color,
-                                end_color=cell.fill.end_color
-                            ),
-                            'border': Border(
-                                left=cell.border.left,
-                                right=cell.border.right,
-                                top=cell.border.top,
-                                bottom=cell.border.bottom
-                            ),
-                            'alignment': Alignment(
-                                horizontal=cell.alignment.horizontal,
-                                vertical=cell.alignment.vertical,
-                                text_rotation=cell.alignment.text_rotation,
-                                wrap_text=cell.alignment.wrap_text,
-                                shrink_to_fit=cell.alignment.shrink_to_fit,
-                                indent=cell.alignment.indent
-                            ),
-                            'number_format': cell.number_format
-                        }
-                except (AttributeError, TypeError):
-                    continue
+        Args:
+            workbook: openpyxl的Workbook对象
+            sheet_name: sheet名称
+            header_row: 表头行号（1-based）
             
-        # 获取数据行的样式（使用表头行下一行作为模板）
-        data_styles = {}
-        if sheet.max_row > header_row:
-            for cell in sheet[header_row + 1]:
-                if not isinstance(cell, type(None)):
-                    try:
-                        col_letter = get_column_letter(cell.column)
-                        if hasattr(cell, 'font'):
-                            # 创建新的样式对象而不是直接引用
-                            data_styles[col_letter] = {
-                                'font': Font(
-                                    name=cell.font.name,
-                                    size=cell.font.size,
-                                    bold=cell.font.bold,
-                                    italic=cell.font.italic,
-                                    vertAlign=cell.font.vertAlign,
-                                    underline=cell.font.underline,
-                                    strike=cell.font.strike,
-                                    color=cell.font.color
-                                ),
-                                'fill': PatternFill(
-                                    fill_type=cell.fill.fill_type,
-                                    start_color=cell.fill.start_color,
-                                    end_color=cell.fill.end_color
-                                ),
-                                'border': Border(
-                                    left=cell.border.left,
-                                    right=cell.border.right,
-                                    top=cell.border.top,
-                                    bottom=cell.border.bottom
-                                ),
-                                'alignment': Alignment(
-                                    horizontal=cell.alignment.horizontal,
-                                    vertical=cell.alignment.vertical,
-                                    text_rotation=cell.alignment.text_rotation,
-                                    wrap_text=cell.alignment.wrap_text,
-                                    shrink_to_fit=cell.alignment.shrink_to_fit,
-                                    indent=cell.alignment.indent
-                                ),
-                                'number_format': cell.number_format
-                            }
-                    except (AttributeError, TypeError):
-                        continue
-                
-        return header_styles, data_styles
-
-    def apply_column_styles(self, workbook, sheet_name, header_styles, data_styles, merge_config):
-        """应用列样式"""
-        if not merge_config['keep_styles']:
-            return
-            
-        sheet = workbook[sheet_name]
-        
+        Returns:
+            tuple: (header_styles, data_styles)
+        """
         try:
-            # 应用表头样式
-            for cell in sheet[1]:  # 第一行是表头
-                if not isinstance(cell, type(None)):
-                    try:
-                        col_letter = get_column_letter(cell.column)
-                        if col_letter in header_styles:
-                            style = header_styles[col_letter]
-                            if merge_config['keep_styles']:
-                                cell.font = style['font']
-                                cell.border = style['border']
-                                cell.alignment = style['alignment']
-                            if merge_config['keep_colors']:
-                                cell.fill = style['fill']
-                            if merge_config['keep_cell_format']:
-                                cell.number_format = style['number_format']
-                    except (AttributeError, TypeError):
-                        continue
-                    
-            # 应用数据行样式
-            for row in sheet.iter_rows(min_row=2):  # 从第二行开始是数据
-                for cell in row:
-                    if not isinstance(cell, type(None)):
-                        try:
-                            col_letter = get_column_letter(cell.column)
-                            if col_letter in data_styles:
-                                style = data_styles[col_letter]
-                                if merge_config['keep_styles']:
-                                    cell.font = style['font']
-                                    cell.border = style['border']
-                                    cell.alignment = style['alignment']
-                                if merge_config['keep_colors']:
-                                    cell.fill = style['fill']
-                                if merge_config['keep_cell_format']:
-                                    cell.number_format = style['number_format']
-                        except (AttributeError, TypeError):
-                            continue
-                            
-            # 调整列宽
-            if merge_config['keep_column_width']:
-                self.adjust_column_width(sheet)
+            sheet = workbook[sheet_name]
+            header_styles = {}
+            data_styles = {}
+            
+            # 获取表头样式
+            header_row_num = int(header_row)
+            for col in range(1, sheet.max_column + 1):
+                col_letter = get_column_letter(col)
+                cell = sheet[f"{col_letter}{header_row_num}"]
+                header_styles[col] = {
+                    'font': copy(cell.font),
+                    'fill': copy(cell.fill),
+                    'border': copy(cell.border),
+                    'alignment': copy(cell.alignment),
+                    'number_format': cell.number_format,
+                    'protection': copy(cell.protection)
+                }
+            
+            # 获取数据区域样式（使用第一个数据行的样式作为模板）
+            data_row_num = header_row_num + 1
+            if data_row_num <= sheet.max_row:
+                for col in range(1, sheet.max_column + 1):
+                    col_letter = get_column_letter(col)
+                    cell = sheet[f"{col_letter}{data_row_num}"]
+                    data_styles[col] = {
+                        'font': copy(cell.font),
+                        'fill': copy(cell.fill),
+                        'border': copy(cell.border),
+                        'alignment': copy(cell.alignment),
+                        'number_format': cell.number_format,
+                        'protection': copy(cell.protection)
+                    }
+            
+            return header_styles, data_styles
+            
+        except Exception as e:
+            print(f"获取样式时出错: {str(e)}")
+            return None, None
+            
+    def apply_column_styles(self, workbook, sheet_name, header_styles, data_styles, merge_config):
+        """
+        应用列样式到指定sheet
+        
+        Args:
+            workbook: openpyxl的Workbook对象
+            sheet_name: sheet名称
+            header_styles: 表头样式字典
+            data_styles: 数据样式字典
+            merge_config: 合并配置
+        """
+        try:
+            sheet = workbook[sheet_name]
+            
+            if merge_config['keep_styles'] and header_styles and data_styles:
+                # 应用表头样式
+                header_row = int(merge_config['header_row'])
+                for col in range(1, sheet.max_column + 1):
+                    if col in header_styles:
+                        col_letter = get_column_letter(col)
+                        cell = sheet[f"{col_letter}{header_row}"]
+                        self._apply_cell_style(cell, header_styles[col], merge_config)
                 
+                # 应用数据区域样式
+                for row in range(header_row + 1, sheet.max_row + 1):
+                    for col in range(1, sheet.max_column + 1):
+                        if col in data_styles:
+                            col_letter = get_column_letter(col)
+                            cell = sheet[f"{col_letter}{row}"]
+                            self._apply_cell_style(cell, data_styles[col], merge_config)
+                
+                # 调整列宽
+                if merge_config['keep_column_width']:
+                    self._adjust_column_width(sheet)
+                    
         except Exception as e:
             print(f"应用样式时出错: {str(e)}")
-            # 继续执行，即使样式应用失败
-
-    def adjust_column_width(self, worksheet):
+            raise  # 抛出异常，让调用者知道出错了
+            
+    def _apply_cell_style(self, cell, style, merge_config):
+        """应用单元格样式"""
+        if merge_config['keep_styles']:
+            cell.font = copy(style['font'])
+            cell.border = copy(style['border'])
+            cell.alignment = copy(style['alignment'])
+            cell.protection = copy(style['protection'])
+            
+        if merge_config['keep_colors']:
+            cell.fill = copy(style['fill'])
+            # 如果字体颜色也要保留
+            if style['font'].color:
+                cell.font = copy(style['font'])
+                
+        if merge_config['keep_cell_format']:
+            cell.number_format = style['number_format']
+            
+    def _adjust_column_width(self, sheet):
         """调整列宽"""
-        for column in worksheet.columns:
+        for col in range(1, sheet.max_column + 1):
+            col_letter = get_column_letter(col)
             max_length = 0
-            try:
-                column_letter = get_column_letter(column[0].column)
-                for cell in column:
-                    try:
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    except:
-                        continue
-                adjusted_width = (max_length + 2)
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-            except:
-                continue 
+            for cell in sheet[col_letter]:
+                try:
+                    if cell.value:
+                        cell_length = len(str(cell.value))
+                        if cell_length > max_length:
+                            max_length = cell_length
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[col_letter].width = adjusted_width 

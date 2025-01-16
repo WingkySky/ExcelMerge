@@ -85,9 +85,22 @@ class TaskManager:
             
     def stop(self):
         """停止任务管理器"""
+        if not self.running:
+            return
+            
         self.running = False
         if self.thread:
-            self.thread.join()
+            try:
+                # 给线程最多3秒的时间来结束
+                self.thread.join(timeout=3)
+                
+                # 如果线程仍然活着，记录警告但继续执行
+                if self.thread.is_alive():
+                    print("警告：任务管理器线程未能在预期时间内停止")
+            except Exception as e:
+                print(f"停止任务管理器时出错：{str(e)}")
+            finally:
+                self.thread = None
             
     def _run(self):
         """运行任务检查循环"""

@@ -11,7 +11,7 @@ class ExcelMerger:
     def __init__(self, style_manager=None):
         """初始化Excel合并器"""
         self.style_manager = style_manager
-
+        
     def merge_files(self, input_files, output_file, selected_sheets, file_sheets, merge_config):
         """
         执行Excel文件合并操作
@@ -64,13 +64,12 @@ class ExcelMerger:
                             except Exception as style_error:
                                 print(f"获取样式时出错: {style_error}")
                                 first_file = False
-            
+                                
             if not all_data:
                 return {'success': False, 'error': "没有有效的数据可以合并！"}
                 
             # 根据合并方式处理数据
             if merge_config['merge_mode'] == "single":
-                # 合并到单个sheet
                 # 检查表头一致性
                 headers_consistent, message = self.check_headers_consistency([df for _, df in all_data])
                 if not headers_consistent:
@@ -83,14 +82,20 @@ class ExcelMerger:
                 sheet_name = merge_config['custom_sheet_name'] if merge_config['sheet_name_mode'] == "custom" else "合并结果"
                 
                 # 保存合并后的文件
-                self.save_merged_file(
-                    output_file,
-                    merged_df,
-                    sheet_name,
-                    header_styles if merge_config['keep_styles'] else None,
-                    data_styles if merge_config['keep_styles'] else None,
-                    merge_config
-                )
+                with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+                    merged_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    
+                    # 应用样式
+                    if merge_config['keep_styles'] and header_styles and data_styles and self.style_manager:
+                        wb = writer.book
+                        self.style_manager.apply_column_styles(
+                            wb,
+                            sheet_name,
+                            header_styles,
+                            data_styles,
+                            merge_config
+                        )
+                        
             else:
                 # 每个文件一个sheet
                 with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
@@ -120,30 +125,51 @@ class ExcelMerger:
                                 data_styles,
                                 merge_config
                             )
-            
+                            
             return {'success': True}
             
         except Exception as e:
             return {'success': False, 'error': str(e)}
-
+            
     def read_excel_range(self, file_path, sheet_name, header_row, start_row=None, end_row=None, 
                         start_col=None, end_col=None, add_source=True):
         """读取指定范围的Excel数据"""
         try:
-            # 获取表头行号
-            header_row = int(header_row) - 1  # 转换为0-based索引
+            # 先读取整个Excel文件，不指定表头
+            df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
             
             # 处理行列范围
-            start_row = int(start_row) - 1 if start_row else None
-            end_row = int(end_row) if end_row else None
-            start_col = self.col_to_num(start_col) if start_col else None
-            end_col = self.col_to_num(end_col) + 1 if end_col else None
+            header_row_idx = int(header_row) - 1 if header_row else 0  # 转换为0-based索引
+            start_row_idx = int(start_row) - 1 if start_row and str(start_row).strip() else 0
+            end_row_idx = int(end_row) if end_row and str(end_row).strip() else len(df)
             
-            # 读取Excel文件，指定表头行
-            df = pd.read_excel(file_path, sheet_name=sheet_name, header=header_row)
+            # 处理列范围
+            if start_col and str(start_col).strip():
+                start_col_idx = self.col_to_num(start_col)
+            else:
+                start_col_idx = 0
+                
+            if end_col and str(end_col).strip():
+                end_col_idx = self.col_to_num(end_col) + 1
+            else:
+                end_col_idx = len(df.columns)
             
-            # 截取指定范围
-            df = df.iloc[start_row:end_row, start_col:end_col]
+            # 截取指定范围的数据
+            df = df.iloc[start_row_idx:end_row_idx, start_col_idx:end_col_idx]
+            
+            # 设置表头
+            header_relative_idx = header_row_idx - start_row_idx
+            if header_relative_idx >= 0 and header_relative_idx < len(df):
+                # 表头在选择范围内
+                header_values = df.iloc[header_relative_idx].values
+                # 确保列名是字符串类型
+                df.columns = [str(val) if pd.notna(val) else f"Column_{i+1}" 
+                            for i, val in enumerate(header_values)]
+                df = df.drop(df.index[header_relative_idx])  # 删除作为表头的行
+                df = df.reset_index(drop=True)  # 重置索引
+            else:
+                # 表头在选择范围外，使用默认列名
+                df.columns = [f"Column_{i+1}" for i in range(len(df.columns))]
             
             # 添加数据来源列
             if add_source:
@@ -153,7 +179,7 @@ class ExcelMerger:
             
         except Exception as e:
             raise Exception(f"读取文件 {os.path.basename(file_path)} 的 {sheet_name} 时出错: {str(e)}")
-
+            
     def smart_merge(self, dataframes, keep_header=True):
         """智能合并数据框列表"""
         if not dataframes:
@@ -179,8 +205,14 @@ class ExcelMerger:
             result_df = dataframes[0].copy()  # 第一个文件完整保留
             
             # 合并其他文件，跳过表头行
+            other_dfs = []
             for df in dataframes[1:]:
-                result_df = pd.concat([result_df, df], ignore_index=True)
+                # 确保列的顺序与第一个数据框一致
+                df = df[result_df.columns]
+                other_dfs.append(df)
+            
+            if other_dfs:
+                result_df = pd.concat([result_df] + other_dfs, ignore_index=True)
         
         # 调整列顺序，确保'数据来源'列在最后
         if '数据来源' in result_df.columns:
@@ -188,7 +220,7 @@ class ExcelMerger:
             result_df = result_df[cols]
         
         return result_df
-
+        
     def check_headers_consistency(self, dataframes):
         """检查所有数据框的表头是否一致"""
         if not dataframes:
@@ -209,23 +241,7 @@ class ExcelMerger:
         if inconsistent_files:
             return False, "\n".join(inconsistent_files)
         return True, "所有文件的表头一致"
-
-    def save_merged_file(self, output_file, data, sheet_name="合并结果", header_styles=None, data_styles=None, merge_config=None):
-        """保存合并后的文件"""
-        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            data.to_excel(writer, sheet_name=sheet_name, index=False)
-            
-            # 应用样式
-            if merge_config and merge_config['keep_styles'] and header_styles and data_styles and self.style_manager:
-                wb = writer.book
-                self.style_manager.apply_column_styles(
-                    wb,
-                    sheet_name,
-                    header_styles,
-                    data_styles,
-                    merge_config
-                )
-
+        
     @staticmethod
     def col_to_num(col_str):
         """将Excel列标转换为数字"""
@@ -235,7 +251,7 @@ class ExcelMerger:
         for c in col_str.upper():
             num = num * 26 + (ord(c) - ord('A') + 1)
         return num - 1
-
+        
     @staticmethod
     def sanitize_sheet_name(sheet_name):
         """确保sheet名称有效"""
