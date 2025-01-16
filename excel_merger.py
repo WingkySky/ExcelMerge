@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
+import customtkinter as ctk
 import pandas as pd
 import schedule
 import time
@@ -9,68 +10,64 @@ import threading
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 from openpyxl.utils import get_column_letter
-from ttkthemes import ThemedStyle
+
+# 设置CustomTkinter的外观模式和默认颜色主题
+ctk.set_appearance_mode("light")  # 模式选项: light, dark, system
+ctk.set_default_color_theme("blue")  # 主题选项: blue, dark-blue, green
 
 class ExcelMergerApp:
     def configure_styles(self):
         """配置所有自定义样式"""
         # 设置全局字体
-        default_font = ('Microsoft YaHei UI', 10)  # 使用微软雅黑作为默认字体
-        self.style.configure('.', font=default_font)
+        self.default_font = ('Microsoft YaHei UI', 12)  # 使用微软雅黑作为默认字体
         
-        # 自定义按钮样式
-        self.style.configure('Custom.TButton', 
-                           padding=5, 
-                           font=default_font)
+        # 配置按钮样式
+        self.button_style = {
+            "font": self.default_font,
+            "corner_radius": 6,
+            "hover": True
+        }
         
-        # 自定义标签样式
-        self.style.configure('Custom.TLabel', 
-                           font=default_font,
-                           padding=2)
+        # 配置标签样式
+        self.label_style = {
+            "font": self.default_font,
+            "text_color": ("black", "white")  # (light mode, dark mode)
+        }
         
-        # 自定义框架样式
-        self.style.configure('Custom.TLabelframe', 
-                           font=default_font,
-                           padding=5)
+        # 配置输入框样式
+        self.entry_style = {
+            "font": self.default_font,
+            "corner_radius": 6
+        }
         
-        self.style.configure('Custom.TLabelframe.Label', 
-                           font=('Microsoft YaHei UI', 10, 'bold'))
+        # 配置下拉框样式
+        self.combobox_style = {
+            "font": self.default_font,
+            "corner_radius": 6,
+            "button_color": "#2CC985",
+            "button_hover_color": "#0C955A"
+        }
         
-        # 自定义输入框样式
-        self.style.configure('Custom.TEntry',
-                           padding=5)
+        # 配置单选按钮样式
+        self.radio_style = {
+            "font": self.default_font,
+            "corner_radius": 1000,
+            "hover": True,
+            "border_width_checked": 6,
+            "border_width_unchecked": 3
+        }
         
-        # 自定义Treeview样式
-        self.style.configure('Custom.Treeview',
-                           font=default_font,
-                           rowheight=25)
-        
-        self.style.configure('Custom.Treeview.Heading',
-                           font=('Microsoft YaHei UI', 10, 'bold'),
-                           padding=5)
-        
-        # 自定义Checkbutton样式
-        self.style.configure('Custom.TCheckbutton',
-                           font=default_font,
-                           padding=5)
-        
-        # 自定义Radiobutton样式
-        self.style.configure('Custom.TRadiobutton',
-                           font=default_font,
-                           padding=5)
-        
-        # 自定义Combobox样式
-        self.style.configure('Custom.TCombobox',
-                           padding=5,
-                           font=default_font)
+        # 配置复选框样式
+        self.checkbox_style = {
+            "font": self.default_font,
+            "corner_radius": 6,
+            "hover": True,
+            "border_width": 3
+        }
 
     def __init__(self, root):
         self.root = root
         self.root.title("Excel文件合并工具")
-        
-        # 设置主题和样式
-        self.style = ThemedStyle(self.root)
-        self.style.set_theme("clearlooks")  # 使用现代化的cleanlook主题
         
         # 配置自定义样式
         self.configure_styles()
@@ -80,8 +77,8 @@ class ExcelMergerApp:
         screen_height = self.root.winfo_screenheight()
         
         # 设置固定的窗口大小
-        window_width = 600  # 固定宽度
-        window_height = 700  # 固定高度
+        window_width = 800  # 增加宽度以适应新的样式
+        window_height = 800  # 增加高度以适应新的样式
         
         # 计算窗口位置（居中）
         x = (screen_width - window_width) // 2
@@ -91,7 +88,7 @@ class ExcelMergerApp:
         self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
         # 设置最小窗口大小
-        self.root.minsize(600, 700)  # 与固定大小相同        
+        self.root.minsize(800, 800)  # 与固定大小相同
         
         
         # 存储选择的文件和输出路径
@@ -159,44 +156,43 @@ class ExcelMergerApp:
         self.create_gui()
         
     def create_gui(self):
-        # 创建主框架，添加内边距和样式
-        main_frame = ttk.Frame(self.root, padding="10", style='Custom.TFrame')
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # 创建主框架
+        main_frame = ctk.CTkFrame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # 创建Notebook，设置样式
-        notebook = ttk.Notebook(main_frame)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # 创建Tabview替代Notebook
+        tabview = ctk.CTkTabview(main_frame, height=700)
+        tabview.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # 创建各个标签页
-        file_page = ttk.Frame(notebook, style='Custom.TFrame')
-        merge_page = ttk.Frame(notebook, style='Custom.TFrame')
-        style_page = ttk.Frame(notebook, style='Custom.TFrame')
-        schedule_page = ttk.Frame(notebook, style='Custom.TFrame')
-        
-        notebook.add(file_page, text="文件选择", padding=5)
-        notebook.add(merge_page, text="合并设置", padding=5)
-        notebook.add(style_page, text="样式设置", padding=5)
-        notebook.add(schedule_page, text="定时任务", padding=5)
+        file_page = tabview.add("文件选择")
+        merge_page = tabview.add("合并设置")
+        style_page = tabview.add("样式设置")
+        schedule_page = tabview.add("定时任务")
         
         # ===== 文件选择页面 =====
         # 文件和Sheet选择区域
-        file_frame = ttk.LabelFrame(file_page, text="文件和Sheet选择", padding="10", style='Custom.TLabelframe')
+        file_frame = ctk.CTkFrame(file_page)
         file_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        file_label = ctk.CTkLabel(file_frame, text="文件和Sheet选择", **self.label_style)
+        file_label.pack(pady=10)
         
         # 创建表格来显示文件和对应的sheet选择
         # 创建带滚动条的框架
-        tree_frame = ttk.Frame(file_frame)
+        tree_frame = ctk.CTkFrame(file_frame)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
+        # 由于CustomTkinter没有提供Treeview，我们继续使用tkinter的Treeview
         columns = ("文件名", "选择Sheet", "自定义Sheet名")
-        self.file_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=8, style='Custom.Treeview')
+        self.file_tree = tk.ttk.Treeview(tree_frame, columns=columns, show="headings", height=8)
         
         # 添加垂直滚动条
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.file_tree.yview)
+        vsb = ctk.CTkScrollbar(tree_frame, orientation="vertical", command=self.file_tree.yview)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
         
         # 添加水平滚动条
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.file_tree.xview)
+        hsb = ctk.CTkScrollbar(tree_frame, orientation="horizontal", command=self.file_tree.xview)
         hsb.pack(side=tk.BOTTOM, fill=tk.X)
         
         # 配置树形视图的滚动
@@ -206,165 +202,220 @@ class ExcelMergerApp:
         # 设置列标题
         for col in columns:
             self.file_tree.heading(col, text=col)
-        
-        # 设置合理的初始列宽
-        self.file_tree.column("文件名", width=100)
-        self.file_tree.column("选择Sheet", width=60)
-        self.file_tree.column("自定义Sheet名", width=100)
+            self.file_tree.column(col, width=150)  # 设置更合适的列宽
         
         # 添加和清除按钮
-        btn_frame = ttk.Frame(file_frame, style='Custom.TFrame')
+        btn_frame = ctk.CTkFrame(file_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Button(btn_frame, text="添加文件", command=self.add_files, style='Custom.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="清除所有", command=self.clear_files, style='Custom.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="修改选中文件的Sheet", command=self.change_sheet, style='Custom.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="修改Sheet名称", command=self.change_sheet_name, style='Custom.TButton').pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(btn_frame, text="添加文件", command=self.add_files, 
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="清除所有", command=self.clear_files,
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="修改选中文件的Sheet", command=self.change_sheet,
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="修改Sheet名称", command=self.change_sheet_name,
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
         
         # 输出路径选择
-        output_frame = ttk.LabelFrame(file_page, text="输出设置", padding="10", style='Custom.TLabelframe')
+        output_frame = ctk.CTkFrame(file_page)
         output_frame.pack(fill=tk.X, padx=10, pady=5)
         
+        output_label = ctk.CTkLabel(output_frame, text="输出设置", **self.label_style)
+        output_label.pack(pady=10)
+        
         # 默认路径选择
-        path_frame = ttk.Frame(output_frame, style='Custom.TFrame')
+        path_frame = ctk.CTkFrame(output_frame)
         path_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(path_frame, text="快速路径：", width=10, style='Custom.TLabel').pack(side=tk.LEFT)
+        
+        ctk.CTkLabel(path_frame, text="快速路径：", width=80, 
+                    **self.label_style).pack(side=tk.LEFT)
         
         # 创建下拉菜单
-        self.path_combobox = ttk.Combobox(path_frame, values=[p for p in self.available_paths], width=45, style='Custom.TCombobox')
+        self.path_combobox = ctk.CTkComboBox(path_frame, values=[p for p in self.available_paths],
+                                            width=400, **self.combobox_style)
         if self.available_paths:
             self.path_combobox.set(self.available_paths[0])
         self.path_combobox.pack(side=tk.LEFT, padx=5)
         
         # 自定义路径
-        custom_path_frame = ttk.Frame(output_frame, style='Custom.TFrame')
+        custom_path_frame = ctk.CTkFrame(output_frame)
         custom_path_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(custom_path_frame, text="自定义路径：", width=10, style='Custom.TLabel').pack(side=tk.LEFT)
-        ttk.Entry(custom_path_frame, textvariable=self.output_path_var, width=45, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        ttk.Button(custom_path_frame, text="浏览", command=self.select_output_path, style='Custom.TButton').pack(side=tk.LEFT)
+        
+        ctk.CTkLabel(custom_path_frame, text="自定义路径：", width=80,
+                    **self.label_style).pack(side=tk.LEFT)
+        
+        ctk.CTkEntry(custom_path_frame, textvariable=self.output_path_var,
+                    width=400, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(custom_path_frame, text="浏览", command=self.select_output_path,
+                     **self.button_style).pack(side=tk.LEFT)
         
         # 文件名设置
-        filename_frame = ttk.Frame(output_frame, style='Custom.TFrame')
+        filename_frame = ctk.CTkFrame(output_frame)
         filename_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(filename_frame, text="文件名：", width=10, style='Custom.TLabel').pack(side=tk.LEFT)
-        ttk.Entry(filename_frame, textvariable=self.output_filename_var, width=30, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        ttk.Label(filename_frame, text=".xlsx", style='Custom.TLabel').pack(side=tk.LEFT)
+        
+        ctk.CTkLabel(filename_frame, text="文件名：", width=80,
+                    **self.label_style).pack(side=tk.LEFT)
+        
+        ctk.CTkEntry(filename_frame, textvariable=self.output_filename_var,
+                    width=300, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkLabel(filename_frame, text=".xlsx",
+                    **self.label_style).pack(side=tk.LEFT)
         
         # ===== 合并设置页面 =====
         # 合并方式设置
-        merge_settings_frame = ttk.LabelFrame(merge_page, text="合并方式设置", padding="10", style='Custom.TLabelframe')
+        merge_settings_frame = ctk.CTkFrame(merge_page)
         merge_settings_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 合并方式选择
-        merge_mode_frame = ttk.Frame(merge_settings_frame, style='Custom.TFrame')
+        merge_mode_frame = ctk.CTkFrame(merge_settings_frame)
         merge_mode_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(merge_mode_frame, text="合并方式：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Radiobutton(merge_mode_frame, text="合并到单个Sheet", variable=self.merge_mode, 
-                       value="single", command=self.on_merge_mode_change, style='Custom.TRadiobutton').pack(side=tk.LEFT, padx=20)
-        ttk.Radiobutton(merge_mode_frame, text="每个文件单独一个Sheet", variable=self.merge_mode, 
-                       value="multiple", command=self.on_merge_mode_change, style='Custom.TRadiobutton').pack(side=tk.LEFT, padx=20)
+        ctk.CTkLabel(merge_mode_frame, text="合并方式：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkRadioButton(merge_mode_frame, text="合并到单个Sheet", variable=self.merge_mode, 
+                       value="single", command=self.on_merge_mode_change, **self.radio_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkRadioButton(merge_mode_frame, text="每个文件单独一个Sheet", variable=self.merge_mode, 
+                       value="multiple", command=self.on_merge_mode_change, **self.radio_style).pack(side=tk.LEFT, padx=20)
         
         # Sheet名称设置（只在单sheet模式下显示）
-        self.single_sheet_frame = ttk.Frame(merge_settings_frame, style='Custom.TFrame')
-        ttk.Label(self.single_sheet_frame, text="Sheet名称：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(self.single_sheet_frame, textvariable=self.custom_sheet_name, width=30, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
+        self.single_sheet_frame = ctk.CTkFrame(merge_settings_frame)
+        ctk.CTkLabel(self.single_sheet_frame, text="Sheet名称：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(self.single_sheet_frame, textvariable=self.custom_sheet_name,
+                    width=300, **self.entry_style).pack(side=tk.LEFT, padx=5)
         
         # 多sheet模式下的设置
-        self.multiple_sheet_frame = ttk.Frame(merge_settings_frame, style='Custom.TFrame')
-        ttk.Label(self.multiple_sheet_frame, text="Sheet命名方式：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Radiobutton(self.multiple_sheet_frame, text="使用文件名", variable=self.sheet_name_mode, 
-                       value="auto", command=self.on_sheet_name_mode_change, style='Custom.TRadiobutton').pack(side=tk.LEFT, padx=20)
-        ttk.Radiobutton(self.multiple_sheet_frame, text="使用原Sheet名", variable=self.sheet_name_mode, 
-                       value="original", command=self.on_sheet_name_mode_change, style='Custom.TRadiobutton').pack(side=tk.LEFT, padx=20)
-        ttk.Radiobutton(self.multiple_sheet_frame, text="使用自定义名称", variable=self.sheet_name_mode, 
-                       value="custom", command=self.on_sheet_name_mode_change, style='Custom.TRadiobutton').pack(side=tk.LEFT, padx=20)
+        self.multiple_sheet_frame = ctk.CTkFrame(merge_settings_frame)
+        ctk.CTkLabel(self.multiple_sheet_frame, text="Sheet命名方式：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkRadioButton(self.multiple_sheet_frame, text="使用文件名", variable=self.sheet_name_mode, 
+                       value="auto", command=self.on_sheet_name_mode_change, **self.radio_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkRadioButton(self.multiple_sheet_frame, text="使用原Sheet名", variable=self.sheet_name_mode, 
+                       value="original", command=self.on_sheet_name_mode_change, **self.radio_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkRadioButton(self.multiple_sheet_frame, text="使用自定义名称", variable=self.sheet_name_mode, 
+                       value="custom", command=self.on_sheet_name_mode_change, **self.radio_style).pack(side=tk.LEFT, padx=20)
 
         # 根据当前模式显示相应的frame
         self.on_merge_mode_change()
 
         # 数据区间选择
-        range_frame = ttk.LabelFrame(merge_page, text="数据区间选择", padding="10", style='Custom.TLabelframe')
+        range_frame = ctk.CTkFrame(merge_page)
         range_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 行设置
-        row_frame = ttk.Frame(range_frame, style='Custom.TFrame')
+        row_frame = ctk.CTkFrame(range_frame)
         row_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(row_frame, text="起始行：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(row_frame, textvariable=self.start_row, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        ttk.Label(row_frame, text="结束行：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(row_frame, textvariable=self.end_row, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(row_frame, text="起始行：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(row_frame, textvariable=self.start_row,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(row_frame, text="结束行：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(row_frame, textvariable=self.end_row,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
         
         # 列设置
-        col_frame = ttk.Frame(range_frame, style='Custom.TFrame')
+        col_frame = ctk.CTkFrame(range_frame)
         col_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(col_frame, text="起始列：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(col_frame, textvariable=self.start_col, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        ttk.Label(col_frame, text="结束列：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(col_frame, textvariable=self.end_col, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(col_frame, text="起始列：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(col_frame, textvariable=self.start_col,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(col_frame, text="结束列：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(col_frame, textvariable=self.end_col,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(range_frame, text="注：列请使用Excel列标（如：A、B、C...）", style='Custom.TLabel').pack(padx=5, pady=5)
+        ctk.CTkLabel(range_frame, text="注：列请使用Excel列标（如：A、B、C...）", **self.label_style).pack(padx=5, pady=5)
         
         # 表头设置
-        header_frame = ttk.LabelFrame(merge_page, text="表头设置", padding="10", style='Custom.TLabelframe')
+        header_frame = ctk.CTkFrame(merge_page)
         header_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        header_settings = ttk.Frame(header_frame, style='Custom.TFrame')
+        header_settings = ctk.CTkFrame(header_frame)
         header_settings.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(header_settings, text="表头行号：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(header_settings, textvariable=self.header_row, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        ttk.Label(header_settings, text="（第几行是表头，从1开始）", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(header_settings, text="保留表头", variable=self.keep_header, style='Custom.TCheckbutton').pack(side=tk.LEFT, padx=20)
+        ctk.CTkLabel(header_settings, text="表头行号：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(header_settings, textvariable=self.header_row,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(header_settings, text="（第几行是表头，从1开始）", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(header_settings, text="保留表头", variable=self.keep_header, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
         
         # ===== 样式设置页面 =====
-        style_options_frame = ttk.LabelFrame(style_page, text="样式选项", padding="10", style='Custom.TLabelframe')
+        style_options_frame = ctk.CTkFrame(style_page)
         style_options_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        # 添加主题选择
-        theme_frame = ttk.Frame(style_options_frame, style='Custom.TFrame')
+        # 添加外观模式选择
+        theme_frame = ctk.CTkFrame(style_options_frame)
         theme_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(theme_frame, text="主题选择：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        # 获取所有可用主题
-        available_themes = sorted(self.style.get_themes())
-        self.theme_combobox = ttk.Combobox(theme_frame, values=available_themes, width=20, style='Custom.TCombobox')
-        self.theme_combobox.set(self.style.theme_use())  # 设置当前主题
-        self.theme_combobox.pack(side=tk.LEFT, padx=5)
-        self.theme_combobox.bind('<<ComboboxSelected>>', self.on_theme_changed)
+        ctk.CTkLabel(theme_frame, text="外观模式：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        
+        # 创建外观模式选择
+        appearance_modes = ["跟随系统", "浅色", "深色"]
+        self.appearance_mode_var = tk.StringVar(value="浅色")
+        self.appearance_mode_menu = ctk.CTkOptionMenu(
+            theme_frame,
+            values=appearance_modes,
+            command=self.change_appearance_mode,
+            variable=self.appearance_mode_var,
+            width=200,
+            **self.combobox_style
+        )
+        self.appearance_mode_menu.pack(side=tk.LEFT, padx=5)
+        
+        # 添加颜色主题选择
+        color_theme_frame = ctk.CTkFrame(style_options_frame)
+        color_theme_frame.pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkLabel(color_theme_frame, text="颜色主题：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        
+        # 创建颜色主题选择
+        color_themes = ["blue", "dark-blue", "green"]
+        self.color_theme_var = tk.StringVar(value="blue")
+        self.color_theme_menu = ctk.CTkOptionMenu(
+            color_theme_frame,
+            values=color_themes,
+            command=self.change_color_theme,
+            variable=self.color_theme_var,
+            width=200,
+            **self.combobox_style
+        )
+        self.color_theme_menu.pack(side=tk.LEFT, padx=5)
         
         # 样式选项
-        style_frame = ttk.Frame(style_options_frame, style='Custom.TFrame')
+        style_frame = ctk.CTkFrame(style_options_frame)
         style_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Checkbutton(style_frame, text="保留样式", variable=self.keep_styles, style='Custom.TCheckbutton').pack(side=tk.LEFT, padx=20)
-        ttk.Checkbutton(style_frame, text="保留列宽", variable=self.keep_column_width, style='Custom.TCheckbutton').pack(side=tk.LEFT, padx=20)
-        ttk.Checkbutton(style_frame, text="保留单元格格式", variable=self.keep_cell_format, style='Custom.TCheckbutton').pack(side=tk.LEFT, padx=20)
-        ttk.Checkbutton(style_frame, text="保留颜色", variable=self.keep_colors, style='Custom.TCheckbutton').pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留样式", variable=self.keep_styles, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留列宽", variable=self.keep_column_width, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留单元格格式", variable=self.keep_cell_format, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
+        ctk.CTkCheckBox(style_frame, text="保留颜色", variable=self.keep_colors, **self.checkbox_style).pack(side=tk.LEFT, padx=20)
         
         # ===== 定时任务页面 =====
-        schedule_settings_frame = ttk.LabelFrame(schedule_page, text="定时设置", padding="10", style='Custom.TLabelframe')
+        schedule_settings_frame = ctk.CTkFrame(schedule_page)
         schedule_settings_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        schedule_time_frame = ttk.Frame(schedule_settings_frame, style='Custom.TFrame')
+        schedule_time_frame = ctk.CTkFrame(schedule_settings_frame)
         schedule_time_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(schedule_time_frame, text="设置定时执行时间（24小时制）：", style='Custom.TLabel').pack(side=tk.LEFT, padx=5)
-        ttk.Entry(schedule_time_frame, textvariable=self.time_var, width=10, style='Custom.TEntry').pack(side=tk.LEFT, padx=5)
-        self.schedule_button = ttk.Button(schedule_time_frame, text="启动定时任务", command=self.toggle_schedule, style='Custom.TButton')
+        ctk.CTkLabel(schedule_time_frame, text="设置定时执行时间（24小时制）：", **self.label_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(schedule_time_frame, textvariable=self.time_var,
+                    width=100, **self.entry_style).pack(side=tk.LEFT, padx=5)
+        self.schedule_button = ctk.CTkButton(schedule_time_frame, text="启动定时任务", command=self.toggle_schedule,
+                     **self.button_style)
         self.schedule_button.pack(side=tk.LEFT, padx=20)
         
         # ===== 底部按钮和状态栏 =====
-        bottom_frame = ttk.Frame(main_frame)
+        bottom_frame = ctk.CTkFrame(main_frame)
         bottom_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # 预览按钮
-        preview_frame = ttk.Frame(bottom_frame)
+        preview_frame = ctk.CTkFrame(bottom_frame)
         preview_frame.pack(side=tk.LEFT)
-        ttk.Button(preview_frame, text="预览选中文件", command=self.preview_data).pack(side=tk.LEFT, padx=5)
-        ttk.Button(preview_frame, text="预览合并结果", command=self.preview_merged_data).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(preview_frame, text="预览选中文件", command=self.preview_data,
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(preview_frame, text="预览合并结果", command=self.preview_merged_data,
+                     **self.button_style).pack(side=tk.LEFT, padx=5)
         
         # 执行按钮
-        ttk.Button(bottom_frame, text="立即执行合并", command=self.merge_files).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(bottom_frame, text="立即执行合并", command=self.merge_files,
+                     **self.button_style).pack(side=tk.RIGHT, padx=5)
         
         # 状态栏
-        status_frame = ttk.Frame(main_frame)
+        status_frame = ctk.CTkFrame(main_frame)
         status_frame.pack(fill=tk.X, padx=10, pady=5)
-        ttk.Label(status_frame, textvariable=self.status_var, style='Custom.TLabel').pack(fill=tk.X)
+        ctk.CTkLabel(status_frame, textvariable=self.status_var, **self.label_style).pack(fill=tk.X)
 
     def change_sheet(self):
         """修改选中文件的Sheet"""
@@ -418,12 +469,14 @@ class ExcelMergerApp:
             sheet_window.destroy()
         
         # 创建按钮框架
-        btn_frame = ttk.Frame(sheet_window)
+        btn_frame = ctk.CTkFrame(sheet_window)
         btn_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 添加确定和取消按钮
-        ttk.Button(btn_frame, text="确定", command=confirm_selection).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="取消", command=cancel_selection).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="确定", command=confirm_selection,
+                     **self.button_style).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="取消", command=cancel_selection,
+                     **self.button_style).pack(side=tk.RIGHT, padx=5)
         
         # 双击选择功能
         def on_double_click(event):
@@ -550,7 +603,7 @@ class ExcelMergerApp:
                 preview_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
                 
                 # 创建Notebook用于显示多个sheet
-                notebook = ttk.Notebook(preview_window)
+                notebook = ctk.CTkTabview(preview_window)
                 notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
                 
                 # 为每个文件创建一个sheet页
@@ -567,18 +620,18 @@ class ExcelMergerApp:
                         sheet_name = os.path.splitext(file_name)[0]
                         
                     # 创建sheet页
-                    sheet_frame = ttk.Frame(notebook)
-                    notebook.add(sheet_frame, text=sheet_name)
+                    sheet_frame = ctk.CTkTabview(notebook)
+                    notebook.add(sheet_name)
                     
                     # 创建表格
-                    tree = ttk.Treeview(sheet_frame)
+                    tree = ctk.CTkTabview(sheet_frame)
                     
                     # 创建垂直滚动条
-                    vsb = ttk.Scrollbar(sheet_frame, orient="vertical", command=tree.yview)
+                    vsb = ctk.CTkScrollbar(sheet_frame, orientation="vertical", command=tree.yview)
                     vsb.pack(side=tk.RIGHT, fill=tk.Y)
                     
                     # 创建水平滚动条
-                    hsb = ttk.Scrollbar(sheet_frame, orient="horizontal", command=tree.xview)
+                    hsb = ctk.CTkScrollbar(sheet_frame, orientation="horizontal", command=tree.xview)
                     hsb.pack(side=tk.BOTTOM, fill=tk.X)
                     
                     # 配置树形视图的滚动
@@ -609,20 +662,21 @@ class ExcelMergerApp:
                             break
                     
                     # 添加数据统计信息
-                    info_frame = ttk.Frame(sheet_frame)
+                    info_frame = ctk.CTkFrame(sheet_frame)
                     info_frame.pack(fill=tk.X, padx=10, pady=5)
                     
                     # 显示总行数和当前显示行数
                     total_rows = len(df)
                     shown_rows = min(total_rows, 1000)
-                    ttk.Label(info_frame, text=f"总行数: {total_rows}    显示行数: {shown_rows}").pack(side=tk.LEFT)
+                    ctk.CTkLabel(info_frame, text=f"总行数: {total_rows}    显示行数: {shown_rows}").pack(side=tk.LEFT)
                     
                     # 如果数据被截断，显示提示信息
                     if total_rows > 1000:
-                        ttk.Label(info_frame, text="（仅显示前1000行）", foreground="red").pack(side=tk.LEFT, padx=5)
+                        ctk.CTkLabel(info_frame, text="（仅显示前1000行）", foreground="red").pack(side=tk.LEFT, padx=5)
                 
                 # 添加关闭按钮
-                ttk.Button(preview_window, text="关闭", command=preview_window.destroy).pack(pady=5)
+                ctk.CTkButton(preview_window, text="关闭", command=preview_window.destroy,
+                             **self.button_style).pack(pady=5)
                 
         except Exception as e:
             messagebox.showerror("错误", f"预览数据时出错：{str(e)}")
@@ -1005,7 +1059,7 @@ class ExcelMergerApp:
         preview_window.geometry("1000x600")
         
         # 创建主框架
-        main_frame = ttk.Frame(preview_window)
+        main_frame = ctk.CTkFrame(preview_window)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # 创建树形视图
@@ -1047,20 +1101,21 @@ class ExcelMergerApp:
                 break
         
         # 添加数据统计信息
-        info_frame = ttk.Frame(preview_window)
+        info_frame = ctk.CTkFrame(preview_window)
         info_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # 显示总行数和当前显示行数
         total_rows = len(data)
         shown_rows = min(total_rows, 1000)
-        ttk.Label(info_frame, text=f"总行数: {total_rows}    显示行数: {shown_rows}").pack(side=tk.LEFT)
+        ctk.CTkLabel(info_frame, text=f"总行数: {total_rows}    显示行数: {shown_rows}", **self.label_style).pack(side=tk.LEFT)
         
         # 如果数据被截断，显示提示信息
         if total_rows > 1000:
-            ttk.Label(info_frame, text="（仅显示前1000行）", foreground="red").pack(side=tk.LEFT, padx=5)
+            ctk.CTkLabel(info_frame, text="（仅显示前1000行）", text_color="red", **self.label_style).pack(side=tk.LEFT, padx=5)
             
         # 添加关闭按钮
-        ttk.Button(preview_window, text="关闭", command=preview_window.destroy).pack(pady=5)
+        ctk.CTkButton(preview_window, text="关闭", command=preview_window.destroy,
+                     **self.button_style).pack(pady=5)
 
     def copy_cell_style(self, source_cell, target_cell):
         """复制单元格样式"""
@@ -1265,13 +1320,13 @@ class ExcelMergerApp:
         dialog.geometry("400x400")
         
         # 创建一个框架来容纳所有输入框
-        frame = ttk.Frame(dialog)
+        frame = ctk.CTkFrame(dialog)
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # 创建一个Canvas和Scrollbar，用于处理多个文件的情况
         canvas = tk.Canvas(frame)
-        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        scrollbar = ctk.CTkScrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ctk.CTkFrame(canvas)
         
         scrollable_frame.bind(
             "<Configure>",
@@ -1286,11 +1341,11 @@ class ExcelMergerApp:
         
         # 为每个文件创建一个输入框
         for i, file_name in enumerate(file_names):
-            frame = ttk.Frame(scrollable_frame)
+            frame = ctk.CTkFrame(scrollable_frame)
             frame.pack(fill=tk.X, padx=5, pady=2)
             
-            ttk.Label(frame, text=f"文件: {file_name}").pack(side=tk.LEFT)
-            entry = ttk.Entry(frame, width=20)
+            ctk.CTkLabel(frame, text=f"文件: {file_name}").pack(side=tk.LEFT)
+            entry = ctk.CTkEntry(frame, width=200)
             entry.insert(0, os.path.splitext(file_name)[0])  # 默认使用文件名（不含扩展名）
             entry.pack(side=tk.RIGHT)
             entries[i] = entry
@@ -1310,10 +1365,10 @@ class ExcelMergerApp:
             dialog.destroy()
         
         # 添加确定和取消按钮
-        btn_frame = ttk.Frame(dialog)
+        btn_frame = ctk.CTkFrame(dialog)
         btn_frame.pack(fill=tk.X, padx=10, pady=5)
-        ttk.Button(btn_frame, text="确定", command=on_ok).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="确定", command=on_ok, **self.button_style).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="取消", command=on_cancel, **self.button_style).pack(side=tk.RIGHT, padx=5)
         
         # 设置模态对话框
         dialog.transient(self.root)
@@ -1387,8 +1442,8 @@ class ExcelMergerApp:
         dialog.title("修改Sheet名称")
         dialog.geometry("300x120")
         
-        ttk.Label(dialog, text="请输入新的Sheet名称：").pack(padx=10, pady=5)
-        entry = ttk.Entry(dialog, width=40)
+        ctk.CTkLabel(dialog, text="请输入新的Sheet名称：").pack(padx=10, pady=5)
+        entry = ctk.CTkEntry(dialog, width=200)
         entry.insert(0, current_name)
         entry.pack(padx=10, pady=5)
         
@@ -1408,7 +1463,7 @@ class ExcelMergerApp:
                 self.file_tree.set(item, "自定义Sheet名", new_name)
                 dialog.destroy()
             
-        ttk.Button(dialog, text="确定", command=on_ok).pack(pady=10)
+        ctk.CTkButton(dialog, text="确定", command=on_ok, **self.button_style).pack(pady=10)
         
         # 设置模态对话框
         dialog.transient(self.root)
@@ -1451,19 +1506,19 @@ class ExcelMergerApp:
         dialog.geometry("600x400")
         
         # 说明文本
-        ttk.Label(dialog, text="检测到以下Sheet名称冲突，请选择处理方式：").pack(padx=10, pady=5)
+        ctk.CTkLabel(dialog, text="检测到以下Sheet名称冲突，请选择处理方式：").pack(padx=10, pady=5)
         
         # 创建滚动框架
-        frame = ttk.Frame(dialog)
+        frame = ctk.CTkFrame(dialog)
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         # 创建滚动框架
-        frame = ttk.Frame(dialog)
+        frame = ctk.CTkFrame(dialog)
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         canvas = tk.Canvas(frame)
-        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        scrollbar = ctk.CTkScrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ctk.CTkFrame(canvas)
         
         scrollable_frame.bind(
             "<Configure>",
@@ -1479,19 +1534,19 @@ class ExcelMergerApp:
         
         # 为每个冲突创建处理选项
         for sheet_name, file_name in conflicts:
-            conflict_frame = ttk.LabelFrame(scrollable_frame, text=f"文件: {file_name}")
+            conflict_frame = ctk.CTkFrame(scrollable_frame)
             conflict_frame.pack(fill=tk.X, padx=5, pady=5)
             
-            ttk.Label(conflict_frame, text=f"当前Sheet名称: {sheet_name}").pack(padx=5, pady=2)
+            ctk.CTkLabel(conflict_frame, text=f"当前Sheet名称: {sheet_name}").pack(padx=5, pady=2)
             
             # 建议的新名称
             suggested_name = self.suggest_sheet_name(sheet_name, existing_names)
             
-            name_frame = ttk.Frame(conflict_frame)
+            name_frame = ctk.CTkFrame(conflict_frame)
             name_frame.pack(fill=tk.X, padx=5, pady=2)
             
-            ttk.Label(name_frame, text="新名称：").pack(side=tk.LEFT)
-            entry = ttk.Entry(name_frame, width=40)
+            ctk.CTkLabel(name_frame, text="新名称：").pack(side=tk.LEFT)
+            entry = ctk.CTkEntry(name_frame, width=200)
             entry.insert(0, suggested_name)
             entry.pack(side=tk.LEFT, padx=5)
             
@@ -1500,7 +1555,7 @@ class ExcelMergerApp:
                 entry.delete(0, tk.END)
                 entry.insert(0, suggested)
                 
-            ttk.Button(name_frame, text="使用建议名称", 
+            ctk.CTkButton(name_frame, text="使用建议名称", 
                       command=use_suggestion).pack(side=tk.LEFT, padx=5)
             
             entries[file_name] = entry
@@ -1528,10 +1583,10 @@ class ExcelMergerApp:
             dialog.destroy()
             
         # 按钮区域
-        btn_frame = ttk.Frame(dialog)
+        btn_frame = ctk.CTkFrame(dialog)
         btn_frame.pack(fill=tk.X, padx=10, pady=5)
-        ttk.Button(btn_frame, text="确定", command=on_ok).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="确定", command=on_ok, **self.button_style).pack(side=tk.RIGHT, padx=5)
+        ctk.CTkButton(btn_frame, text="取消", command=on_cancel, **self.button_style).pack(side=tk.RIGHT, padx=5)
         
         # 设置模态对话框
         dialog.transient(self.root)
@@ -1549,16 +1604,20 @@ class ExcelMergerApp:
             
         return False
 
-    def on_theme_changed(self, event):
-        """当主题改变时的处理"""
-        selected_theme = self.theme_combobox.get()
-        self.style.set_theme(selected_theme)
-        # 重新应用自定义样式
+    def change_appearance_mode(self, new_appearance_mode):
+        """切换外观模式"""
+        mode_map = {
+            "跟随系统": "system",
+            "浅色": "light",
+            "深色": "dark"
+        }
+        ctk.set_appearance_mode(mode_map[new_appearance_mode])
+
+    def change_color_theme(self, new_color_theme):
+        """切换颜色主题"""
+        ctk.set_default_color_theme(new_color_theme)
+        # 重新应用样式
         self.configure_styles()
-        # 强制更新底部按钮样式
-        self.root.update_idletasks()
-        # 更新状态栏提示
-        self.status_var.set(f"已切换到主题：{selected_theme}")
 
 def main():
     root = tk.Tk()
