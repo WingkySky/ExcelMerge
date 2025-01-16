@@ -103,20 +103,33 @@ class ExcelStyleManager:
             
     def _apply_cell_style(self, cell, style, merge_config):
         """应用单元格样式"""
-        if merge_config['keep_styles']:
-            cell.font = copy(style['font'])
-            cell.border = copy(style['border'])
-            cell.alignment = copy(style['alignment'])
-            cell.protection = copy(style['protection'])
+        try:
+            # 创建新的字体对象，保留所有属性
+            new_font = copy(style['font'])
             
-        if merge_config['keep_colors']:
-            cell.fill = copy(style['fill'])
-            # 如果字体颜色也要保留
-            if style['font'].color:
-                cell.font = copy(style['font'])
+            if merge_config['keep_styles']:
+                # 如果不保留颜色，清除字体颜色
+                if not merge_config['keep_colors']:
+                    new_font.color = None
+                cell.font = new_font
+                cell.border = copy(style['border'])
+                cell.alignment = copy(style['alignment'])
+                cell.protection = copy(style['protection'])
                 
-        if merge_config['keep_cell_format']:
-            cell.number_format = style['number_format']
+            if merge_config['keep_colors']:
+                cell.fill = copy(style['fill'])
+                # 如果只保留颜色不保留样式，只复制字体颜色
+                if not merge_config['keep_styles'] and style['font'].color:
+                    current_font = copy(cell.font)
+                    current_font.color = style['font'].color
+                    cell.font = current_font
+                    
+            if merge_config['keep_cell_format']:
+                cell.number_format = style['number_format']
+                
+        except Exception as e:
+            print(f"应用单元格样式时出错: {str(e)}")
+            # 继续处理，不中断整个过程
             
     def _adjust_column_width(self, sheet):
         """调整列宽"""

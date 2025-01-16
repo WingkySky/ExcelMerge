@@ -10,7 +10,9 @@ class MergeSettings(ctk.CTkFrame):
         """初始化合并设置器"""
         super().__init__(parent, **kwargs)
         self.app = app
+        self.entries = {}  # 保存所有输入框的引用
         self.create_widgets()
+        self.setup_bindings()
         
     def create_widgets(self):
         """创建组件"""
@@ -60,21 +62,27 @@ class MergeSettings(ctk.CTkFrame):
         row_frame = ctk.CTkFrame(range_frame)
         row_frame.pack(fill=tk.X, padx=5, pady=5)
         ctk.CTkLabel(row_frame, text="起始行：", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(row_frame, textvariable=self.app.merge_config.start_row,
-                    width=100, **self.app.style_config.entry_style).pack(side=tk.LEFT, padx=5)
+        self.entries['start_row'] = ctk.CTkEntry(row_frame, textvariable=self.app.merge_config.start_row,
+                    width=100, **self.app.style_config.entry_style)
+        self.entries['start_row'].pack(side=tk.LEFT, padx=5)
+        
         ctk.CTkLabel(row_frame, text="结束行：", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(row_frame, textvariable=self.app.merge_config.end_row,
-                    width=100, **self.app.style_config.entry_style).pack(side=tk.LEFT, padx=5)
+        self.entries['end_row'] = ctk.CTkEntry(row_frame, textvariable=self.app.merge_config.end_row,
+                    width=100, **self.app.style_config.entry_style)
+        self.entries['end_row'].pack(side=tk.LEFT, padx=5)
         
         # 列设置
         col_frame = ctk.CTkFrame(range_frame)
         col_frame.pack(fill=tk.X, padx=5, pady=5)
         ctk.CTkLabel(col_frame, text="起始列：", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(col_frame, textvariable=self.app.merge_config.start_col,
-                    width=100, **self.app.style_config.entry_style).pack(side=tk.LEFT, padx=5)
+        self.entries['start_col'] = ctk.CTkEntry(col_frame, textvariable=self.app.merge_config.start_col,
+                    width=100, **self.app.style_config.entry_style)
+        self.entries['start_col'].pack(side=tk.LEFT, padx=5)
+        
         ctk.CTkLabel(col_frame, text="结束列：", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(col_frame, textvariable=self.app.merge_config.end_col,
-                    width=100, **self.app.style_config.entry_style).pack(side=tk.LEFT, padx=5)
+        self.entries['end_col'] = ctk.CTkEntry(col_frame, textvariable=self.app.merge_config.end_col,
+                    width=100, **self.app.style_config.entry_style)
+        self.entries['end_col'].pack(side=tk.LEFT, padx=5)
         
         ctk.CTkLabel(range_frame, text="注：列请使用Excel列标（如：A、B、C...）", **self.app.style_config.label_style).pack(padx=5, pady=5)
         
@@ -85,8 +93,54 @@ class MergeSettings(ctk.CTkFrame):
         header_settings = ctk.CTkFrame(header_frame)
         header_settings.pack(fill=tk.X, padx=5, pady=5)
         ctk.CTkLabel(header_settings, text="表头行号：", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(header_settings, textvariable=self.app.merge_config.header_row,
-                    width=100, **self.app.style_config.entry_style).pack(side=tk.LEFT, padx=5)
+        self.entries['header_row'] = ctk.CTkEntry(header_settings, textvariable=self.app.merge_config.header_row,
+                    width=100, **self.app.style_config.entry_style)
+        self.entries['header_row'].pack(side=tk.LEFT, padx=5)
+        
         ctk.CTkLabel(header_settings, text="（第几行是表头，从1开始）", **self.app.style_config.label_style).pack(side=tk.LEFT, padx=5)
         ctk.CTkCheckBox(header_settings, text="保留表头", variable=self.app.merge_config.keep_header,
                        **self.app.style_config.checkbox_style).pack(side=tk.LEFT, padx=20) 
+        
+    def enable_all_entries(self):
+        """启用所有输入框"""
+        for entry in self.entries.values():
+            entry.configure(state="normal")
+            
+    def disable_all_entries(self):
+        """禁用所有输入框"""
+        for entry in self.entries.values():
+            entry.configure(state="disabled") 
+        
+    def setup_bindings(self):
+        """设置输入框变更事件绑定"""
+        def on_value_change(*args):
+            # 如果预览窗口存在，则更新预览
+            if (self.app.preview_window.preview_window and 
+                self.app.preview_window.preview_window.winfo_exists()):
+                try:
+                    # 获取当前选中的文件
+                    selection = self.app.file_selector.file_tree.selection()
+                    if selection:
+                        file_path = self.app.file_handler.get_file_path_from_item(selection[0])
+                        if file_path and file_path in self.app.file_handler.selected_sheets:
+                            # 重新读取数据
+                            df = self.app.excel_merger.read_excel_range(
+                                file_path,
+                                self.app.file_handler.selected_sheets[file_path],
+                                self.app.merge_config.header_row.get(),
+                                self.app.merge_config.start_row.get(),
+                                self.app.merge_config.end_row.get(),
+                                self.app.merge_config.start_col.get(),
+                                self.app.merge_config.end_col.get()
+                            )
+                            # 更新预览
+                            self.app.preview_window.update_preview(df)
+                except Exception as e:
+                    print(f"更新预览时出错：{str(e)}")
+        
+        # 为所有配置变量添加跟踪
+        self.app.merge_config.header_row.trace_add("write", on_value_change)
+        self.app.merge_config.start_row.trace_add("write", on_value_change)
+        self.app.merge_config.end_row.trace_add("write", on_value_change)
+        self.app.merge_config.start_col.trace_add("write", on_value_change)
+        self.app.merge_config.end_col.trace_add("write", on_value_change) 

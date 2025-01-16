@@ -91,7 +91,10 @@ class MergeHandler:
                 self.app.merge_config.start_col.get(),
                 self.app.merge_config.end_col.get()
             )
+            
+            # 显示预览窗口
             self.app.preview_window.show_preview(df, f"预览: {os.path.basename(file_path)}")
+            
         except Exception as e:
             messagebox.showerror("错误", f"预览数据时出错：{str(e)}")
             
@@ -127,13 +130,18 @@ class MergeHandler:
                 
             if merge_config['merge_mode'] == "single":
                 # 检查表头一致性
-                headers_consistent, message = self.app.excel_merger.check_headers_consistency([df for _, df in all_data])
+                headers_consistent, message = self.app.excel_merger.check_headers_consistency(
+                    [df for _, df in all_data]
+                )
                 if not headers_consistent:
                     if not messagebox.askyesno("警告", f"发现表头不一致：\n{message}\n是否继续预览？"):
                         return
                     
                 # 合并数据
-                merged_df = self.app.excel_merger.smart_merge([df for _, df in all_data], merge_config['keep_header'])
+                merged_df = self.app.excel_merger.smart_merge(
+                    [df for _, df in all_data],
+                    merge_config['keep_header']
+                )
                 self.app.preview_window.show_preview(merged_df, "预览: 合并结果")
             else:
                 # 准备多sheet预览数据

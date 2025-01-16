@@ -133,15 +133,21 @@ class ExcelMerger:
             
     def read_excel_range(self, file_path, sheet_name, header_row, start_row=None, end_row=None, 
                         start_col=None, end_col=None, add_source=True):
-        """读取指定范围的Excel数据"""
+        """
+        读取指定范围的Excel数据
+        Args:
+            file_path: Excel文件路径
+            sheet_name: 工作表名称
+            header_row: 表头行号（1-based）
+            start_row: 数据开始行号（1-based）
+            end_row: 数据结束行号（1-based）
+            start_col: 开始列（A, B, C...）
+            end_col: 结束列（A, B, C...）
+            add_source: 是否添加数据来源列
+        """
         try:
-            # 先读取整个Excel文件，不指定表头
+            # 读取整个Excel文件，不指定表头
             df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-            
-            # 处理行列范围
-            header_row_idx = int(header_row) - 1 if header_row else 0  # 转换为0-based索引
-            start_row_idx = int(start_row) - 1 if start_row and str(start_row).strip() else 0
-            end_row_idx = int(end_row) if end_row and str(end_row).strip() else len(df)
             
             # 处理列范围
             if start_col and str(start_col).strip():
@@ -154,28 +160,34 @@ class ExcelMerger:
             else:
                 end_col_idx = len(df.columns)
             
-            # 截取指定范围的数据
-            df = df.iloc[start_row_idx:end_row_idx, start_col_idx:end_col_idx]
+            # 处理表头行
+            header_row_idx = int(header_row) - 1 if header_row and str(header_row).strip() else 0
             
-            # 设置表头
-            header_relative_idx = header_row_idx - start_row_idx
-            if header_relative_idx >= 0 and header_relative_idx < len(df):
-                # 表头在选择范围内
-                header_values = df.iloc[header_relative_idx].values
-                # 确保列名是字符串类型
-                df.columns = [str(val) if pd.notna(val) else f"Column_{i+1}" 
-                            for i, val in enumerate(header_values)]
-                df = df.drop(df.index[header_relative_idx])  # 删除作为表头的行
-                df = df.reset_index(drop=True)  # 重置索引
+            # 获取表头数据
+            header_df = df.iloc[header_row_idx:header_row_idx+1, start_col_idx:end_col_idx]
+            header_values = header_df.iloc[0].values
+            
+            # 处理数据范围
+            if not start_row or not str(start_row).strip():
+                start_row_idx = header_row_idx + 1  # 默认从表头的下一行开始
             else:
-                # 表头在选择范围外，使用默认列名
-                df.columns = [f"Column_{i+1}" for i in range(len(df.columns))]
+                start_row_idx = int(start_row) - 1
+            
+            end_row_idx = int(end_row) if end_row and str(end_row).strip() else len(df)
+            
+            # 获取数据部分
+            data_df = df.iloc[start_row_idx:end_row_idx, start_col_idx:end_col_idx]
+            
+            # 设置列名
+            columns = [str(val) if pd.notna(val) else f"Column_{i+1}" 
+                      for i, val in enumerate(header_values)]
+            data_df.columns = columns
             
             # 添加数据来源列
             if add_source:
-                df['数据来源'] = os.path.basename(file_path)
+                data_df['数据来源'] = os.path.basename(file_path)
             
-            return df
+            return data_df
             
         except Exception as e:
             raise Exception(f"读取文件 {os.path.basename(file_path)} 的 {sheet_name} 时出错: {str(e)}")
