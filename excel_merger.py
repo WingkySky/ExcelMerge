@@ -1063,14 +1063,14 @@ class ExcelMergerApp:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # 创建树形视图
-        tree = ttk.Treeview(main_frame)
+        tree = tk.ttk.Treeview(main_frame)
         
         # 创建垂直滚动条
-        vsb = ttk.Scrollbar(main_frame, orient="vertical", command=tree.yview)
+        vsb = ctk.CTkScrollbar(main_frame, orient="vertical", command=tree.yview)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
         
         # 创建水平滚动条
-        hsb = ttk.Scrollbar(main_frame, orient="horizontal", command=tree.xview)
+        hsb = ctk.CTkScrollbar(main_frame, orient="horizontal", command=tree.xview)
         hsb.pack(side=tk.BOTTOM, fill=tk.X)
         
         # 配置树形视图的滚动
