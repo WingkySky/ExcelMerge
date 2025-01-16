@@ -24,6 +24,10 @@ from .handlers.path_manager import PathManager
 
 from .preview.preview_window import PreviewWindow
 
+from ..scheduler.task_manager import TaskManager
+from ..excel.merger import ExcelMerger
+from ..excel.style_manager import ExcelStyleManager
+
 class ExcelMergerApp:
     def __init__(self, root):
         """初始化主窗口"""
@@ -45,6 +49,12 @@ class ExcelMergerApp:
         # 创建界面
         self.create_gui()
         
+        # 启动任务管理器
+        self.task_manager.start()
+        
+        # 绑定窗口关闭事件
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
     def init_config(self):
         """初始化配置"""
         # 创建样式配置
@@ -56,12 +66,21 @@ class ExcelMergerApp:
         # 创建路径管理器
         self.path_manager = PathManager()
         
+        # 创建Excel样式管理器
+        self.style_manager = ExcelStyleManager()
+        
+        # 创建Excel合并器
+        self.excel_merger = ExcelMerger(self.style_manager)
+        
         # 创建处理器
         self.file_handler = FileHandler(self)
         self.merge_handler = MergeHandler(self)
         
         # 创建预览窗口
         self.preview_window = PreviewWindow(self.root)
+        
+        # 创建任务管理器
+        self.task_manager = TaskManager(self)
         
         # 初始化变量
         self.output_path = os.path.expanduser("~/Documents")  # 默认输出路径
@@ -152,3 +171,9 @@ class ExcelMergerApp:
         else:
             self.schedule_settings.schedule_button.configure(text="启动定时任务")
             self.status_var.set("定时任务已停止") 
+        
+    def on_closing(self):
+        """窗口关闭时的处理"""
+        if messagebox.askokcancel("退出", "确定要退出程序吗？\n注意：退出后定时任务将无法执行。"):
+            self.task_manager.stop()
+            self.root.destroy() 
