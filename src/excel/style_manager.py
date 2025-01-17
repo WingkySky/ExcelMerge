@@ -8,7 +8,7 @@ from copy import copy
 class ExcelStyleManager:
     def __init__(self):
         """初始化样式管理器"""
-        pass
+        self.style_cache = {}  # 用于缓存样式
         
     def get_column_styles(self, workbook, sheet_name, header_row):
         """
@@ -76,6 +76,7 @@ class ExcelStyleManager:
         try:
             sheet = workbook[sheet_name]
             
+            # 只检查是否保留样式，简化逻辑
             if merge_config['keep_styles'] and header_styles and data_styles:
                 # 应用表头样式
                 header_row = int(merge_config['header_row'])
@@ -83,7 +84,7 @@ class ExcelStyleManager:
                     if col in header_styles:
                         col_letter = get_column_letter(col)
                         cell = sheet[f"{col_letter}{header_row}"]
-                        self._apply_cell_style(cell, header_styles[col], merge_config)
+                        self._apply_cell_style(cell, header_styles[col])
                 
                 # 应用数据区域样式
                 for row in range(header_row + 1, sheet.max_row + 1):
@@ -91,42 +92,26 @@ class ExcelStyleManager:
                         if col in data_styles:
                             col_letter = get_column_letter(col)
                             cell = sheet[f"{col_letter}{row}"]
-                            self._apply_cell_style(cell, data_styles[col], merge_config)
+                            self._apply_cell_style(cell, data_styles[col])
                 
                 # 调整列宽
-                if merge_config['keep_column_width']:
-                    self._adjust_column_width(sheet)
+                self._adjust_column_width(sheet)
                     
         except Exception as e:
             print(f"应用样式时出错: {str(e)}")
             raise  # 抛出异常，让调用者知道出错了
             
-    def _apply_cell_style(self, cell, style, merge_config):
+    def _apply_cell_style(self, cell, style):
         """应用单元格样式"""
         try:
-            # 创建新的字体对象，保留所有属性
-            new_font = copy(style['font'])
-            
-            if merge_config['keep_styles']:
-                # 如果不保留颜色，清除字体颜色
-                if not merge_config['keep_colors']:
-                    new_font.color = None
-                cell.font = new_font
-                cell.border = copy(style['border'])
-                cell.alignment = copy(style['alignment'])
-                cell.protection = copy(style['protection'])
-                
-            if merge_config['keep_colors']:
-                cell.fill = copy(style['fill'])
-                # 如果只保留颜色不保留样式，只复制字体颜色
-                if not merge_config['keep_styles'] and style['font'].color:
-                    current_font = copy(cell.font)
-                    current_font.color = style['font'].color
-                    cell.font = current_font
+            # 一次性应用所有样式，不做分类处理
+            cell.font = copy(style['font'])
+            cell.fill = copy(style['fill'])
+            cell.border = copy(style['border'])
+            cell.alignment = copy(style['alignment'])
+            cell.number_format = style['number_format']
+            cell.protection = copy(style['protection'])
                     
-            if merge_config['keep_cell_format']:
-                cell.number_format = style['number_format']
-                
         except Exception as e:
             print(f"应用单元格样式时出错: {str(e)}")
             # 继续处理，不中断整个过程

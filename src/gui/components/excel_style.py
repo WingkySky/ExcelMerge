@@ -22,19 +22,11 @@ class ExcelStyle(ctk.CTkFrame):
         style_frame = ctk.CTkFrame(self)
         style_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # 创建样式选项
-        style_options = [
-            ("保留Excel原有样式", self.app.merge_config.keep_styles),
-            ("保留列宽", self.app.merge_config.keep_column_width),
-            ("保留单元格格式", self.app.merge_config.keep_cell_format),
-            ("保留颜色", self.app.merge_config.keep_colors)
-        ]
-        
-        for text, var in style_options:
-            option_frame = ctk.CTkFrame(style_frame)
-            option_frame.pack(fill=tk.X, padx=5, pady=2)
-            ctk.CTkCheckBox(option_frame, text=text, variable=var,
-                          **self.app.style_config.checkbox_style).pack(side=tk.LEFT, padx=20)
+        # 只保留一个样式选项
+        option_frame = ctk.CTkFrame(style_frame)
+        option_frame.pack(fill=tk.X, padx=5, pady=2)
+        ctk.CTkCheckBox(option_frame, text="保留Excel原有样式", variable=self.app.merge_config.keep_styles,
+                      **self.app.style_config.checkbox_style).pack(side=tk.LEFT, padx=20)
             
         # 添加说明文本
         note_frame = ctk.CTkFrame(self)
@@ -42,10 +34,9 @@ class ExcelStyle(ctk.CTkFrame):
         
         notes = [
             "样式设置说明：",
-            "1. 保留Excel原有样式：包括字体、边框、对齐方式等",
-            "2. 保留列宽：保持原Excel文件的列宽设置",
-            "3. 保留单元格格式：保持数字、日期等格式设置",
-            "4. 保留颜色：包括背景色和字体颜色"
+            "1. 勾选'保留Excel原有样式'将完整保留原Excel文件的所有样式设置",
+            "2. 包括：字体、颜色、边框、对齐方式、数字格式等",
+            "3. 不勾选则只保留原始数据，不保留任何样式"
         ]
         
         for note in notes:
