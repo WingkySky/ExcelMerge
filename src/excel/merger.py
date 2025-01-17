@@ -55,7 +55,7 @@ class ExcelMerger:
                         if first_file and merge_config['keep_styles'] and self.style_manager:
                             try:
                                 wb = load_workbook(file)
-                                header_styles, data_styles = self.style_manager.get_column_styles(
+                                header_styles, data_styles, merged_cells = self.style_manager.get_column_styles(
                                     wb, 
                                     selected_sheets[file],
                                     merge_config['header_row']
@@ -82,8 +82,8 @@ class ExcelMerger:
                 sheet_name = merge_config['custom_sheet_name'] if merge_config['sheet_name_mode'] == "custom" else "合并结果"
                 
                 # 保存合并后的文件
-                with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-                    merged_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                with pd.ExcelWriter(output_file, engine='openpyxl', mode='w') as writer:
+                    merged_df.to_excel(writer, sheet_name=sheet_name, index=False, float_format=None)
                     
                     # 应用样式
                     if merge_config['keep_styles'] and header_styles and data_styles and self.style_manager:
@@ -93,7 +93,8 @@ class ExcelMerger:
                             sheet_name,
                             header_styles,
                             data_styles,
-                            merge_config
+                            merge_config,
+                            merged_cells
                         )
                         
             else:
@@ -113,7 +114,7 @@ class ExcelMerger:
                         sheet_name = self.sanitize_sheet_name(sheet_name)
                         
                         # 保存数据
-                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        df.to_excel(writer, sheet_name=sheet_name, index=False, float_format=None)
                         
                         # 应用样式
                         if merge_config['keep_styles'] and header_styles and data_styles and self.style_manager:
@@ -123,7 +124,8 @@ class ExcelMerger:
                                 sheet_name,
                                 header_styles,
                                 data_styles,
-                                merge_config
+                                merge_config,
+                                merged_cells
                             )
                             
             return {'success': True}
